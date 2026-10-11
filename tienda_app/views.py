@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views import View
 
 from .infra.factories import PaymentFactory
+from .models import Libro
 from .services import CompraService
 
 
@@ -36,3 +37,11 @@ class CompraView(View):
             )
         except (ValueError, Exception) as e:
             return render(request, self.template_name, {'error': str(e)}, status=400)
+
+
+class InventarioView(View):
+    """Vista HTML del inventario: muestra el stock que comparten la web y la API."""
+
+    def get(self, request):
+        libros = Libro.objects.select_related('inventario').order_by('id')
+        return render(request, 'tienda_app/inventario.html', {'libros': libros})
