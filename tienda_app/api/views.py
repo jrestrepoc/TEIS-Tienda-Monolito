@@ -3,9 +3,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from tienda_app.infra.factories import PaymentFactory
+from tienda_app.models import Libro
 from tienda_app.services import CompraService
 
-from .serializers import OrdenInputSerializer
+from .serializers import LibroSerializer, OrdenInputSerializer
+
+
+class ProductosAPIView(APIView):
+    """
+    GET /api/v1/productos/
+    Lista los libros con su stock actual (lo responde el monolito Django).
+    """
+
+    def get(self, request):
+        libros = Libro.objects.select_related('inventario').order_by('id')
+        return Response(LibroSerializer(libros, many=True).data)
 
 
 class CompraAPIView(APIView):
@@ -15,7 +27,18 @@ class CompraAPIView(APIView):
     Payload: {"libro_id": 1, "direccion_envio": "Calle 123", "cantidad": 1}
     """
 
+    def get(self, request):
+        return Response({
+            'servicio': 'Tienda API (Django REST Framework)',
+            'endpoint': 'POST /api/v1/comprar/',
+            'payload_ejemplo': {'libro_id': 1, 'direccion_envio': 'Calle 123', 'cantidad': 1},
+            'productos': LibroSerializer(
+                Libro.objects.select_related('inventario').order_by('id'), many=True
+            ).data,
+        })
+
     def post(self, request):
+        # 1. Validacion de datos de entrada (Adapter / DTO)
         serializer = OrdenInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -23,7 +46,9 @@ class CompraAPIView(APIView):
         datos = serializer.validated_data
 
         try:
+            # 2. Inyeccion de dependencias (Factory)
             gateway = PaymentFactory.get_processor()
+            # 3. Logica de negocio (Service Layer) -> la misma que usa la vista HTML
             servicio = CompraService(procesador_pago=gateway)
             usuario = request.user if request.user.is_authenticated else None
             resultado = servicio.ejecutar_compra(
@@ -42,6 +67,7 @@ class CompraAPIView(APIView):
             )
 
         except ValueError as e:
+            # Errores de negocio (ej: sin stock)
             return Response({'error': str(e)}, status=status.HTTP_409_CONFLICT)
         except Exception:
             return Response({'error': 'Error interno'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
