@@ -10,11 +10,10 @@ services:
 
   web:
     build: .
-    command: sh -c "python manage.py migrate --noinput && python manage.py seed_libros && python manage.py runserver 0.0.0.0:8000"
+    # CAMBIO 1: Gunicorn en lugar de runserver ('Tienda' es la carpeta del wsgi.py)
+    command: sh -c "python manage.py migrate --noinput && python manage.py seed_libros && gunicorn Tienda.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
     depends_on:
       - db
     restart: on-failure
@@ -22,8 +21,19 @@ services:
       - DB_NAME=tienda_db
       - DB_USER=postgres
       - DB_PASSWORD=secret_password
-      - DB_HOST=db  # nombre del servicio definido arriba
+      - DB_HOST=db
       - DB_PORT=5432
+    # NOTA: ya no hay seccion 'ports'. Django esta aislado detras de Nginx.
+
+  # CAMBIO 2: Nginx es el unico que da la cara a internet
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
