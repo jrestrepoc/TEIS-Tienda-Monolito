@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tienda - Inventario</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { border-collapse: collapse; min-width: 520px; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Inventario de la Tienda</h1>
+    <table>
+        <tr><th>ID</th><th>Libro</th><th>Precio</th><th>Stock actual</th><th></th></tr>
+        {% for libro in libros %}
+        <tr>
+            <td>{{ libro.id }}</td>
+            <td>{{ libro.titulo }}</td>
+            <td>${{ libro.precio }}</td>
+            <td><strong>{{ libro.inventario.cantidad }}</strong></td>
+            <td><a href="{% url 'finalizar_compra' libro.id %}">Comprar</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No hay libros. Ejecute: python manage.py seed_libros</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
