@@ -1,0 +1,6 @@
+Django>=5.0,<6.0
+djangorestframework>=3.15
+markdown
+django-filter
+psycopg2-binary
+gunicorn
